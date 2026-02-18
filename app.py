@@ -46,7 +46,33 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Responsive CSS ───────────────────────────────────────────────────────────
+# ── Theme toggle (must come before CSS injection) ────────────────────────────
+
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = True
+
+_dark = st.session_state.dark_mode
+
+# ── Responsive CSS with theme variables ──────────────────────────────────────
+
+_t = dict(
+    bg        = "#0e1117"  if _dark else "#ffffff",
+    fg        = "#f0f0f0"  if _dark else "#1a1a1a",
+    fg_muted  = "#aaa"     if _dark else "#666",
+    fg_dim    = "#9ca3af"  if _dark else "#888",
+    surface   = "#111827"  if _dark else "#f4f5f7",
+    border    = "#2a2a2a"  if _dark else "#ddd",
+    ascii_bg  = "#0a0a0a"  if _dark else "#f5f5f5",
+    ascii_fg  = "#e0e0e0"  if _dark else "#333",
+    hero_bg   = "linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)"
+                if _dark else
+                "linear-gradient(135deg,#e8eaf6 0%,#f3e5f5 50%,#e8eaf6 100%)",
+    hero_bdr  = "#2a2a4a"  if _dark else "#ccc",
+    hero_sub  = "#c0c0d0"  if _dark else "#555",
+    hero_desc = "#8888a0"  if _dark else "#888",
+    footer_fg = "#666"     if _dark else "#999",
+    footer_bdr= "#222"     if _dark else "#ddd",
+)
 
 st.markdown(
     f"""
@@ -57,10 +83,6 @@ st.markdown(
     .brand-dollar {{
         color: #2ecc40;
         font-family: 'Rock Salt', cursive;
-    }}
-    .brand-name {{
-        font-family: 'Rock Salt', cursive;
-        color: #f0f0f0;
     }}
 
     /* ── Base container ─────────────────────────────────── */
@@ -102,11 +124,11 @@ st.markdown(
         font-family: 'Courier New', Consolas, 'Liberation Mono', monospace;
         white-space: pre;
         overflow-x: auto;
-        background: #0a0a0a;
-        color: #e0e0e0;
+        background: {_t['ascii_bg']};
+        color: {_t['ascii_fg']};
         padding: 1rem;
         border-radius: 0.5rem;
-        border: 1px solid #2a2a2a;
+        border: 1px solid {_t['border']};
         max-height: 520px;
         overflow-y: auto;
     }}
@@ -117,7 +139,7 @@ st.markdown(
         margin-bottom: 4px;
     }}
 
-    /* ── Brand header (matches Card Sniper style) ───────── */
+    /* ── Brand header ───────────────────────────────────── */
     .brand-header {{
         display: flex;
         align-items: center;
@@ -134,12 +156,12 @@ st.markdown(
         font-size: 2rem;
         font-family: 'Rock Salt', cursive;
         letter-spacing: 1px;
-        color: #f0f0f0;
+        color: {_t['fg']};
         margin: 0;
     }}
     .brand-sub {{
         font-size: 0.95rem;
-        color: #aaa;
+        color: {_t['fg_muted']};
         margin: 0 0 0.15rem;
     }}
     .brand-credit {{
@@ -151,12 +173,12 @@ st.markdown(
 
     /* ── Hero section ───────────────────────────────────── */
     .hero-box {{
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+        background: {_t['hero_bg']};
         border-radius: 12px;
         padding: 2rem 1.5rem;
         text-align: center;
         margin-bottom: 1.5rem;
-        border: 1px solid #2a2a4a;
+        border: 1px solid {_t['hero_bdr']};
     }}
     .hero-title {{
         font-size: 1.6rem;
@@ -169,12 +191,12 @@ st.markdown(
     }}
     .hero-sub {{
         font-size: 1.05rem;
-        color: #c0c0d0;
+        color: {_t['hero_sub']};
         margin: 0 0 0.3rem;
     }}
     .hero-desc {{
         font-size: 0.85rem;
-        color: #8888a0;
+        color: {_t['hero_desc']};
         margin: 0;
     }}
 
@@ -188,9 +210,9 @@ st.markdown(
     .style-card {{
         text-align: center;
         padding: 1rem 0.6rem;
-        border: 1px solid #2a2a2a;
+        border: 1px solid {_t['border']};
         border-radius: 10px;
-        background: #111827;
+        background: {_t['surface']};
         transition: border-color 0.2s;
     }}
     .style-card:hover {{
@@ -201,11 +223,11 @@ st.markdown(
         font-weight: 700;
         font-size: 0.9rem;
         margin: 0.35rem 0 0.15rem;
-        color: #e0e0e0;
+        color: {_t['fg']};
     }}
     .style-card .desc {{
         font-size: 0.75rem;
-        color: #9ca3af;
+        color: {_t['fg_dim']};
         line-height: 1.3;
     }}
 
@@ -214,8 +236,8 @@ st.markdown(
         text-align: center;
         padding: 1rem 0 0.5rem;
         font-size: 0.78rem;
-        color: #666;
-        border-top: 1px solid #222;
+        color: {_t['footer_fg']};
+        border-top: 1px solid {_t['footer_bdr']};
         margin-top: 1.5rem;
     }}
     .app-footer a {{ color: {BRAND_COLOR}; text-decoration: none; }}
@@ -320,6 +342,10 @@ with st.sidebar:
         )
 
     st.divider()
+    st.toggle("🌙 Dark mode", value=st.session_state.dark_mode,
+              key="dark_toggle",
+              on_change=lambda: st.session_state.update(
+                  dark_mode=not st.session_state.dark_mode))
     st.caption(f"© 2026 {BRAND_NAME}")
 
 
