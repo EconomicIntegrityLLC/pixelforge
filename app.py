@@ -51,6 +51,18 @@ st.set_page_config(
 st.markdown(
     f"""
     <style>
+    /* ── Google Font ─────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap');
+
+    .brand-dollar {{
+        color: #2ecc40;
+        font-family: 'Rock Salt', cursive;
+    }}
+    .brand-name {{
+        font-family: 'Rock Salt', cursive;
+        color: #f0f0f0;
+    }}
+
     /* ── Base container ─────────────────────────────────── */
     .block-container {{
         max-width: 1060px;
@@ -120,8 +132,8 @@ st.markdown(
     }}
     .brand-header .title {{
         font-size: 2rem;
-        font-weight: 800;
-        letter-spacing: -0.5px;
+        font-family: 'Rock Salt', cursive;
+        letter-spacing: 1px;
         color: #f0f0f0;
         margin: 0;
     }}
@@ -147,12 +159,13 @@ st.markdown(
         border: 1px solid #2a2a4a;
     }}
     .hero-title {{
-        font-size: 1.8rem;
-        font-weight: 800;
-        background: linear-gradient(90deg, {BRAND_COLOR}, #e8d48b);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-size: 1.6rem;
+        font-family: 'Rock Salt', cursive;
+        color: {BRAND_COLOR};
         margin: 0 0 0.5rem;
+    }}
+    .hero-title .hero-dollar {{
+        color: #2ecc40;
     }}
     .hero-sub {{
         font-size: 1.05rem;
@@ -246,7 +259,7 @@ def render_brand_header() -> None:
     st.markdown(
         f'<div class="brand-header">'
         f'  {logo_html}'
-        f'  <p class="title">$entimize.ai</p>'
+        f'  <p class="title"><span class="brand-dollar">$</span>entimize.ai</p>'
         f'</div>'
         f'<p class="brand-sub"><b>Turn any image into art.</b> — Image Art Studio</p>'
         f'<p class="brand-credit">{BRAND_NAME} IP — Created {CREATED_DATE}</p>',
@@ -273,7 +286,11 @@ def render_footer() -> None:
 with st.sidebar:
     if LOGO_PATH.exists():
         st.image(str(LOGO_PATH), width=60)
-    st.markdown("# $entimize.ai")
+    st.markdown(
+        '<h1 style="font-family:\'Rock Salt\',cursive;font-size:1.5rem;">'
+        '<span style="color:#2ecc40;">$</span>entimize.ai</h1>',
+        unsafe_allow_html=True,
+    )
     st.caption("Image Art Studio")
     st.divider()
 
@@ -313,7 +330,7 @@ if source is None:
 
     st.markdown(
         '<div class="hero-box">'
-        '  <p class="hero-title">$entimize.ai — Image Art Studio</p>'
+        '  <p class="hero-title"><span class="hero-dollar">$</span>entimize.ai — Image Art Studio</p>'
         '  <p class="hero-sub">Upload a photo or snap a selfie. Get instant art.</p>'
         '  <p class="hero-desc">No AI APIs. No accounts. No cost. Pure Python open-source.</p>'
         '</div>',
