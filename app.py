@@ -30,10 +30,24 @@ from transforms import (
 # ── Constants ────────────────────────────────────────────────────────────────
 
 LOGO_PATH = Path(__file__).parent / "assets" / "logo.png"
+SAMPLE_PATH = Path(__file__).parent / "assets" / "sample.jpg"
 BRAND_COLOR = "#c8a84e"
+BRAND_GREEN = "#2ecc40"
 BRAND_NAME = "Economic Integrity LLC"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 CREATED_DATE = "2/18/26"
+
+STYLES = [
+    ("🟩", "Pixel Art", "Retro pixelation with colour quantisation"),
+    ("📝", "ASCII Art", "Image rendered entirely as text characters"),
+    ("✏️", "Sketch", "Pencil-drawing via edge detection"),
+    ("🔲", "Quadtree", "Geometric recursive decomposition"),
+    ("🎨", "Pop Art", "Bold posterised colours, Warhol-style"),
+    ("🎯", "Palette", "Extract & visualise dominant colours"),
+    ("🖍️", "Color It", "Turn any photo into a colour-by-number page"),
+]
+
+TAB_LABELS = [f"{icon} {name}" for icon, name, _ in STYLES]
 
 # ── Page config ──────────────────────────────────────────────────────────────
 
@@ -46,17 +60,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Theme toggle (must come before CSS injection) ────────────────────────────
+# ── Session state defaults ───────────────────────────────────────────────────
 
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = True
+if "use_sample" not in st.session_state:
+    st.session_state.use_sample = False
 
 _dark = st.session_state.dark_mode
 
 # ── Responsive CSS with theme variables ──────────────────────────────────────
 
 _t = dict(
-    bg        = "#0e1117"  if _dark else "#ffffff",
     fg        = "#f0f0f0"  if _dark else "#1a1a1a",
     fg_muted  = "#aaa"     if _dark else "#666",
     fg_dim    = "#9ca3af"  if _dark else "#888",
@@ -66,187 +81,157 @@ _t = dict(
     ascii_fg  = "#e0e0e0"  if _dark else "#333",
     hero_bg   = "linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)"
                 if _dark else
-                "linear-gradient(135deg,#e8eaf6 0%,#f3e5f5 50%,#e8eaf6 100%)",
-    hero_bdr  = "#2a2a4a"  if _dark else "#ccc",
+                "linear-gradient(135deg,#f5f0e1 0%,#ede4d3 50%,#f5f0e1 100%)",
+    hero_bdr  = "#2a2a4a"  if _dark else "#d4c9a8",
     hero_sub  = "#c0c0d0"  if _dark else "#555",
     hero_desc = "#8888a0"  if _dark else "#888",
     footer_fg = "#666"     if _dark else "#999",
     footer_bdr= "#222"     if _dark else "#ddd",
+    card_shadow = "none"   if _dark else "0 1px 4px rgba(0,0,0,0.08)",
 )
 
 st.markdown(
     f"""
     <style>
-    /* ── Google Font ─────────────────────────────────────── */
     @import url('https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap');
 
-    .brand-dollar {{
-        color: #2ecc40;
-        font-family: 'Rock Salt', cursive;
-    }}
-
-    /* ── Base container ─────────────────────────────────── */
+    /* ── Base ──────────────────────────────────────────── */
     .block-container {{
         max-width: 1060px;
         padding: 1.2rem 1.5rem 2rem;
     }}
 
-    /* ── Responsive breakpoints ─────────────────────────── */
+    /* ── Responsive ────────────────────────────────────── */
     @media (max-width: 768px) {{
-        .block-container {{
-            max-width: 100%;
-            padding: 0.8rem 0.8rem 1.5rem;
-        }}
-        .style-grid {{
-            grid-template-columns: 1fr 1fr !important;
-        }}
-        .hero-title {{ font-size: 1.4rem !important; }}
+        .block-container {{ max-width: 100%; padding: 0.8rem 0.8rem 1.5rem; }}
+        .style-grid {{ grid-template-columns: 1fr 1fr !important; }}
+        .hero-title {{ font-size: 1.3rem !important; }}
         .hero-sub   {{ font-size: 0.95rem !important; }}
-        .brand-header .title {{ font-size: 1.6rem !important; }}
+        .brand-header .title {{ font-size: 1.5rem !important; }}
     }}
-
     @media (max-width: 480px) {{
-        .style-grid {{
-            grid-template-columns: 1fr !important;
-        }}
+        .style-grid {{ grid-template-columns: 1fr !important; }}
         .brand-header .logo {{ width: 36px !important; height: 36px !important; }}
-        .brand-header .title {{ font-size: 1.3rem !important; }}
+        .brand-header .title {{ font-size: 1.2rem !important; }}
     }}
 
-    /* ── Sidebar ────────────────────────────────────────── */
-    section[data-testid="stSidebar"] {{
-        min-width: 260px;
-        max-width: 310px;
+    /* ── Sidebar ───────────────────────────────────────── */
+    section[data-testid="stSidebar"] {{ min-width: 260px; max-width: 310px; }}
+
+    /* ── Sidebar open button — make it visible on mobile ─ */
+    button[data-testid="stBaseButton-headerNoPadding"] {{
+        background: #111 !important;
+        border: 2px solid {BRAND_GREEN} !important;
+        border-radius: 8px !important;
+        padding: 6px 10px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        box-shadow: 0 2px 8px rgba(46,204,64,0.3) !important;
+    }}
+    button[data-testid="stBaseButton-headerNoPadding"] svg {{
+        fill: {BRAND_GREEN} !important;
+        width: 22px !important;
+        height: 22px !important;
     }}
 
-    /* ── ASCII art box ──────────────────────────────────── */
+    /* ── ASCII art box ─────────────────────────────────── */
     .ascii-box {{
         font-family: 'Courier New', Consolas, 'Liberation Mono', monospace;
-        white-space: pre;
-        overflow-x: auto;
-        background: {_t['ascii_bg']};
-        color: {_t['ascii_fg']};
-        padding: 1rem;
-        border-radius: 0.5rem;
+        white-space: pre; overflow-x: auto;
+        background: {_t['ascii_bg']}; color: {_t['ascii_fg']};
+        padding: 1rem; border-radius: 0.5rem;
         border: 1px solid {_t['border']};
-        max-height: 520px;
-        overflow-y: auto;
+        max-height: 520px; overflow-y: auto;
     }}
 
-    /* ── Colour swatches ────────────────────────────────── */
-    .swatch {{
-        border-radius: 8px;
-        margin-bottom: 4px;
-    }}
+    /* ── Colour swatches ───────────────────────────────── */
+    .swatch {{ border-radius: 8px; margin-bottom: 4px; }}
 
-    /* ── Brand header ───────────────────────────────────── */
+    /* ── Brand header ──────────────────────────────────── */
     .brand-header {{
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 0.15rem;
+        display: flex; align-items: center; gap: 14px; margin-bottom: 0.15rem;
     }}
     .brand-header .logo {{
-        width: 48px;
-        height: 48px;
-        border-radius: 6px;
-        object-fit: cover;
+        width: 48px; height: 48px; border-radius: 6px; object-fit: cover;
     }}
     .brand-header .title {{
-        font-size: 2rem;
-        font-family: 'Rock Salt', cursive;
-        letter-spacing: 1px;
-        color: {_t['fg']};
-        margin: 0;
+        font-size: 2rem; font-family: 'Rock Salt', cursive;
+        letter-spacing: 1px; color: {_t['fg']}; margin: 0;
     }}
-    .brand-sub {{
-        font-size: 0.95rem;
-        color: {_t['fg_muted']};
-        margin: 0 0 0.15rem;
-    }}
+    .brand-dollar {{ color: {BRAND_GREEN}; }}
+    .brand-sub {{ font-size: 0.95rem; color: {_t['fg_muted']}; margin: 0 0 0.15rem; }}
     .brand-credit {{
-        font-size: 0.82rem;
-        color: {BRAND_COLOR};
-        font-weight: 600;
-        margin: 0 0 1rem;
+        font-size: 0.82rem; color: {BRAND_COLOR}; font-weight: 600; margin: 0 0 1rem;
     }}
 
-    /* ── Hero section ───────────────────────────────────── */
+    /* ── Hero section ──────────────────────────────────── */
     .hero-box {{
-        background: {_t['hero_bg']};
-        border-radius: 12px;
-        padding: 2rem 1.5rem;
-        text-align: center;
-        margin-bottom: 1.5rem;
-        border: 1px solid {_t['hero_bdr']};
+        background: {_t['hero_bg']}; border-radius: 12px;
+        padding: 2rem 1.5rem; text-align: center;
+        margin-bottom: 1.5rem; border: 1px solid {_t['hero_bdr']};
     }}
     .hero-title {{
-        font-size: 1.6rem;
-        font-family: 'Rock Salt', cursive;
-        color: {BRAND_COLOR};
-        margin: 0 0 0.5rem;
+        font-size: 1.6rem; font-family: 'Rock Salt', cursive;
+        color: {BRAND_COLOR}; margin: 0 0 0.5rem;
     }}
-    .hero-title .hero-dollar {{
-        color: #2ecc40;
-    }}
-    .hero-sub {{
-        font-size: 1.05rem;
-        color: {_t['hero_sub']};
-        margin: 0 0 0.3rem;
-    }}
-    .hero-desc {{
-        font-size: 0.85rem;
-        color: {_t['hero_desc']};
-        margin: 0;
-    }}
+    .hero-dollar {{ color: {BRAND_GREEN}; }}
+    .hero-sub {{ font-size: 1.05rem; color: {_t['hero_sub']}; margin: 0 0 0.3rem; }}
+    .hero-desc {{ font-size: 0.85rem; color: {_t['hero_desc']}; margin: 0; }}
 
-    /* ── Style cards grid ───────────────────────────────── */
+    /* ── Style cards grid ──────────────────────────────── */
     .style-grid {{
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        margin-bottom: 1.5rem;
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 12px; margin-bottom: 1.5rem;
     }}
     .style-card {{
-        text-align: center;
-        padding: 1rem 0.6rem;
-        border: 1px solid {_t['border']};
-        border-radius: 10px;
-        background: {_t['surface']};
-        transition: border-color 0.2s;
+        text-align: center; padding: 1rem 0.6rem;
+        border: 1px solid {_t['border']}; border-radius: 10px;
+        background: {_t['surface']}; transition: all 0.2s;
+        box-shadow: {_t['card_shadow']};
+        cursor: pointer;
     }}
     .style-card:hover {{
         border-color: {BRAND_COLOR};
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(200,168,78,0.15);
     }}
     .style-card .icon {{ font-size: 1.8rem; }}
     .style-card .name {{
-        font-weight: 700;
-        font-size: 0.9rem;
-        margin: 0.35rem 0 0.15rem;
-        color: {_t['fg']};
+        font-weight: 700; font-size: 0.9rem;
+        margin: 0.35rem 0 0.15rem; color: {_t['fg']};
     }}
     .style-card .desc {{
-        font-size: 0.75rem;
-        color: {_t['fg_dim']};
-        line-height: 1.3;
+        font-size: 0.75rem; color: {_t['fg_dim']}; line-height: 1.3;
+    }}
+    .style-card .try-label {{
+        font-size: 0.7rem; color: {BRAND_GREEN}; font-weight: 600;
+        margin-top: 0.4rem; letter-spacing: 0.5px;
     }}
 
-    /* ── Footer ─────────────────────────────────────────── */
+    /* ── Sample banner ─────────────────────────────────── */
+    .sample-banner {{
+        background: linear-gradient(90deg, {BRAND_GREEN}22, {BRAND_COLOR}22);
+        border: 1px solid {BRAND_GREEN}44;
+        border-radius: 8px; padding: 0.6rem 1rem;
+        margin-bottom: 1rem; display: flex;
+        align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 0.5rem;
+    }}
+    .sample-banner .text {{
+        font-size: 0.88rem; color: {_t['fg']};
+    }}
+
+    /* ── Footer ────────────────────────────────────────── */
     .app-footer {{
-        text-align: center;
-        padding: 1rem 0 0.5rem;
-        font-size: 0.78rem;
-        color: {_t['footer_fg']};
-        border-top: 1px solid {_t['footer_bdr']};
+        text-align: center; padding: 1rem 0 0.5rem; font-size: 0.78rem;
+        color: {_t['footer_fg']}; border-top: 1px solid {_t['footer_bdr']};
         margin-top: 1.5rem;
     }}
     .app-footer a {{ color: {BRAND_COLOR}; text-decoration: none; }}
     .app-footer a:hover {{ text-decoration: underline; }}
 
-    /* ── Tab polish ──────────────────────────────────────── */
-    .stTabs [data-baseweb="tab-panel"] {{
-        padding-top: 0.8rem;
-    }}
+    /* ── Tab polish ─────────────────────────────────────── */
+    .stTabs [data-baseweb="tab-panel"] {{ padding-top: 0.8rem; }}
 
     /* ── Hide Streamlit chrome ──────────────────────────── */
     #MainMenu {{ visibility: hidden; }}
@@ -267,17 +252,14 @@ def img_to_bytes(img: Image.Image, fmt: str = "PNG") -> bytes:
 
 
 def render_brand_header() -> None:
-    """Render the Economic Integrity LLC brand header (Card Sniper style)."""
     import base64
     logo_b64 = ""
     if LOGO_PATH.exists():
         logo_b64 = base64.b64encode(LOGO_PATH.read_bytes()).decode()
-
     logo_html = (
         f'<img class="logo" src="data:image/png;base64,{logo_b64}" alt="Logo">'
         if logo_b64 else ""
     )
-
     st.markdown(
         f'<div class="brand-header">'
         f'  {logo_html}'
@@ -290,7 +272,6 @@ def render_brand_header() -> None:
 
 
 def render_footer() -> None:
-    """Render the branded footer."""
     st.markdown(
         f'<div class="app-footer">'
         f'  $entimize.ai v{APP_VERSION} · '
@@ -329,17 +310,16 @@ with st.sidebar:
         )
         if upload:
             source = Image.open(upload).convert("RGB")
+            st.session_state.use_sample = False
     else:
         cam = st.camera_input("Snap a photo")
         if cam:
             source = Image.open(cam).convert("RGB")
+            st.session_state.use_sample = False
 
     if source:
         st.divider()
-        st.image(
-            source,
-            caption=f"Original  •  {source.width} × {source.height}",
-        )
+        st.image(source, caption=f"Original  •  {source.width} × {source.height}")
 
     st.divider()
     st.toggle("🌙 Dark mode", value=st.session_state.dark_mode,
@@ -349,7 +329,13 @@ with st.sidebar:
     st.caption(f"© 2026 {BRAND_NAME}")
 
 
-# ── Landing page (no image yet) ─────────────────────────────────────────────
+# ── Load sample if requested ─────────────────────────────────────────────────
+
+if source is None and st.session_state.use_sample and SAMPLE_PATH.exists():
+    source = Image.open(SAMPLE_PATH).convert("RGB")
+
+
+# ── Landing page (no image loaded) ───────────────────────────────────────────
 
 if source is None:
     render_brand_header()
@@ -363,27 +349,28 @@ if source is None:
         unsafe_allow_html=True,
     )
 
-    styles = [
-        ("🟩", "Pixel Art", "Retro pixelation with colour quantisation"),
-        ("📝", "ASCII Art", "Image rendered entirely as text characters"),
-        ("✏️", "Sketch", "Pencil-drawing via edge detection"),
-        ("🔲", "Quadtree", "Geometric recursive decomposition"),
-        ("🎨", "Pop Art", "Bold posterised colours, Warhol-style"),
-        ("🎯", "Palette", "Extract & visualise dominant colours"),
-        ("🖍️", "Color It", "Turn any photo into a colour-by-number page"),
-    ]
-
-    cards_html = '<div class="style-grid">'
-    for icon, name, desc in styles:
-        cards_html += (
-            f'<div class="style-card">'
-            f'<div class="icon">{icon}</div>'
-            f'<div class="name">{name}</div>'
-            f'<div class="desc">{desc}</div>'
-            f'</div>'
+    if SAMPLE_PATH.exists():
+        st.markdown(
+            f'<p style="text-align:center;font-size:0.9rem;color:{_t["fg_muted"]};">'
+            f'👇 Click any style below to <b>try it with a sample photo</b> before uploading your own</p>',
+            unsafe_allow_html=True,
         )
-    cards_html += '</div>'
-    st.markdown(cards_html, unsafe_allow_html=True)
+
+    row1 = st.columns(3, gap="medium")
+    row2 = st.columns(3, gap="medium")
+    row3 = st.columns(3, gap="medium")
+    all_cols = list(row1) + list(row2) + list(row3)
+
+    for i, (icon, name, desc) in enumerate(STYLES):
+        with all_cols[i]:
+            if st.button(
+                f"{icon}\n{name}",
+                key=f"try_{i}",
+                use_container_width=True,
+                help=desc,
+            ):
+                st.session_state.use_sample = True
+                st.rerun()
 
     render_footer()
     st.stop()
@@ -395,10 +382,21 @@ if source is None:
 
 render_brand_header()
 
-tab_px, tab_asc, tab_sk, tab_qt, tab_pop, tab_pal, tab_cbn = st.tabs(
-    ["🟩 Pixel Art", "📝 ASCII Art", "✏️ Sketch",
-     "🔲 Quadtree", "🎨 Pop Art", "🎯 Palette", "🖍️ Color It"]
-)
+if st.session_state.use_sample:
+    scol1, scol2 = st.columns([5, 1])
+    with scol1:
+        st.markdown(
+            '<div class="sample-banner">'
+            '<span class="text">🖼️ Viewing sample photo — upload your own in the sidebar for the full experience!</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    with scol2:
+        if st.button("✕ Clear sample", use_container_width=True):
+            st.session_state.use_sample = False
+            st.rerun()
+
+tab_px, tab_asc, tab_sk, tab_qt, tab_pop, tab_pal, tab_cbn = st.tabs(TAB_LABELS)
 
 
 # ── 1  Pixel Art ─────────────────────────────────────────────────────────────
@@ -411,7 +409,6 @@ with tab_px:
     with c2:
         px_colors = st.slider("Colour count", 2, 64, 16, key="px_colors",
                               help="Fewer → more retro")
-
     with st.spinner("Pixelating…"):
         px_result = pixelate(source, px_block, px_colors)
     st.image(px_result, width="stretch")
@@ -434,7 +431,6 @@ with tab_asc:
             key="a_charset",
             help="blocks → Unicode ░▒▓█  •  detailed → 70-char gradient",
         )
-
     with st.spinner("Converting to text…"):
         ascii_str = to_ascii(source, a_width, a_charset)
     font_px = max(3, min(7, int(700 / a_width * 8)))
@@ -459,7 +455,6 @@ with tab_sk:
                              help="Lower → finer detail  •  Higher → bolder lines")
     with c2:
         sk_inv = st.checkbox("White background", True, key="sk_inv")
-
     with st.spinner("Sketching…"):
         sk_result = sketch(source, sk_sigma, sk_inv)
     st.image(sk_result, width="stretch")
@@ -481,7 +476,6 @@ with tab_qt:
                               help="Lower → finer splits")
     with c3:
         qt_border = st.checkbox("Show cell borders", True, key="qt_border")
-
     with st.spinner("Decomposing…"):
         qt_result = quadtree(source, qt_depth, qt_thresh, qt_border)
     st.image(qt_result, width="stretch")
@@ -501,7 +495,6 @@ with tab_pop:
     with c2:
         pop_sat = st.slider("Saturation boost", 0.5, 3.0, 1.5, 0.1, key="pop_sat",
                             help="Crank it for full Warhol")
-
     with st.spinner("Posterising…"):
         pop_result = posterize(source, pop_levels, pop_sat)
     st.image(pop_result, width="stretch")
@@ -515,10 +508,8 @@ with tab_pop:
 
 with tab_pal:
     pal_n = st.slider("Colours to extract", 3, 12, 6, key="pal_n")
-
     with st.spinner("Extracting palette…"):
         palette = extract_palette(source, pal_n)
-
     total_px = sum(cnt for _, cnt in palette)
 
     swatch_cols = st.columns(len(palette), gap="small")
@@ -537,11 +528,9 @@ with tab_pal:
 
     hex_colors = [f"#{r:02x}{g:02x}{b:02x}" for (r, g, b), _ in palette]
     counts = [c for _, c in palette]
-
     fig = go.Figure(
         go.Bar(
-            x=hex_colors, y=counts,
-            marker_color=hex_colors,
+            x=hex_colors, y=counts, marker_color=hex_colors,
             text=[f"{c / total_px * 100:.1f}%" for c in counts],
             textposition="outside",
         )
@@ -552,7 +541,7 @@ with tab_pal:
         showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font_color="#ccc",
+        font_color="#ccc" if _dark else "#333",
     )
     st.plotly_chart(fig, key="palette_chart")
     st.code(" | ".join(hex_colors), language=None)
@@ -567,11 +556,8 @@ with tab_cbn:
                                help="Fewer → simpler to colour, more → finer detail")
     with c2:
         cbn_peek = st.checkbox("Show completed preview", False, key="cbn_peek")
-
     with st.spinner("Generating colour-by-number template…"):
-        cbn_outline, cbn_filled, cbn_palette = color_by_number(
-            source, cbn_colors
-        )
+        cbn_outline, cbn_filled, cbn_palette = color_by_number(source, cbn_colors)
 
     legend_cols = st.columns(min(len(cbn_palette), 12), gap="small")
     for i, (num, (r, g, b)) in enumerate(cbn_palette):
